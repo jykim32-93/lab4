@@ -1,0 +1,197 @@
+Wed Jul 14 16:12:22 EDT 2021
+
+hostname:vm1.lab.jykim32.ops
+
+SELinux status:Enforcing
+
+INTERFACES
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=enp1s0
+UUID=26fb76d0-3767-496d-8f0d-9174b51041f6
+DEVICE=enp1s0
+ONBOOT=yes
+IPADDR=192.168.117.53
+PREFIX=24
+GATEWAY=192.168.117.1
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=static
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=enp2s0
+UUID=2527fb75-9e81-437c-a700-49f3fb39c3f8
+DEVICE=enp2s0
+ONBOOT=yes
+IPADDR=192.168.17.53
+PREFIX=24
+IPV6_PRIVACY=no
+
+Firewall configuration
+public (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: enp1s0 enp2s0
+  sources: 
+  services: cockpit dhcpv6-client dns http https ldap ldaps ssh
+  ports: 53/udp
+  protocols: 
+  masquerade: no
+  forward-ports: 
+  source-ports: 
+  icmp-blocks: 
+  rich rules: 
+UUID:7c765f14-74f4-4c49-b1a5-f1a748ae418f
+
+named:failed
+named:enabled
+DNS config
+drwxrwx--T. 5 root named system_u:object_r:named_zone_t:s0 164 Jul 14 15:47 /var/named
+
+total 24
+drwxrwx---. 2 named named system_u:object_r:named_cache_t:s0       6 May 27 16:49 data
+drwxrwx---. 2 named named system_u:object_r:named_cache_t:s0       6 May 27 16:49 dynamic
+-rw-r--r--. 1 root  root  unconfined_u:object_r:named_zone_t:s0  757 Jul 14 15:47 my-zone.db
+-rw-r-----. 1 root  named system_u:object_r:named_conf_t:s0     2253 May 27 16:49 named.ca
+-rw-r-----. 1 root  named system_u:object_r:named_zone_t:s0      152 May 27 16:49 named.empty
+-rw-r-----. 1 root  named system_u:object_r:named_zone_t:s0      152 May 27 16:49 named.localhost
+-rw-r-----. 1 root  named system_u:object_r:named_zone_t:s0      168 May 27 16:49 named.loopback
+-rw-r--r--. 1 root  root  unconfined_u:object_r:named_zone_t:s0  531 Jul 14 15:39 rev-zone.db
+drwxrwx---. 2 named named system_u:object_r:named_cache_t:s0       6 May 27 16:49 slaves
+
+SEBool
+named_write_master_zones --> on
+
+named config
+//
+// named.conf
+//
+// Provided by Red Hat bind package to configure the ISC BIND named(8) DNS
+// server as a caching only nameserver (as a localhost DNS resolver only).
+//
+// See /usr/share/doc/bind*/sample/ for example named configuration files.
+//
+
+options {
+	listen-on port 53 { 127.0.0.1; };
+	listen-on-v6 port 53 { ::1; };
+	directory 	"/var/named";
+	dump-file 	"/var/named/data/cache_dump.db";
+	statistics-file "/var/named/data/named_stats.txt";
+	memstatistics-file "/var/named/data/named_mem_stats.txt";
+	secroots-file	"/var/named/data/named.secroots";
+	recursing-file	"/var/named/data/named.recursing";
+	allow-query     { any; };
+
+	/* 
+	 - If you are building an AUTHORITATIVE DNS server, do NOT enable recursion.
+	 - If you are building a RECURSIVE (caching) DNS server, you need to enable 
+	   recursion. 
+	 - If your recursive DNS server has a public IP address, you MUST enable access 
+	   control to limit queries to your legitimate users. Failing to do so will
+	   cause your server to become part of large scale DNS amplification 
+	   attacks. Implementing BCP38 within your network would greatly
+	   reduce such attack surface 
+	*/
+	recursion yes;
+
+	dnssec-enable yes;
+	dnssec-validation yes;
+
+	managed-keys-directory "/var/named/dynamic";
+
+	pid-file "/run/named/named.pid";
+	session-keyfile "/run/named/session.key";
+
+	/* https://fedoraproject.org/wiki/Changes/CryptoPolicy */
+	include "/etc/crypto-policies/back-ends/bind.config";
+};
+
+logging {
+        channel default_debug {
+                file "data/named.run";
+                severity dynamic;
+        };
+};
+
+zone "." IN {
+	type hint;
+	file "named.ca";
+};
+
+include "/etc/named.rfc1912.zones";
+include "/etc/named.root.key";
+
+zone "vm1.lab.jykim32.ops" IN {//Domain Name
+	type master; // Master DNS Server
+	file "my-zone.db"; //Zone File
+	allow-update { none; }; //Since master DNS, it is none
+};
+zone "53.17.168.192.in-addr.arpa" IN {//Reverse Zone Name
+	type master;
+	file "rev-zone.db";
+	allow-update { localhost; };
+};
+
+
+Zone config
+/var/named/my-zone.db
+$TTL 86400
+@   IN  SOA     vm1.lab.jykim32.ops. root.vm1.lab.jykim32.ops. (
+                                              3           ;Serial
+                                              3600        ;Refresh
+                                              1800        ;Retry
+                                              604800      ;Expire
+                                              86400       ;Minimum TTL
+)
+
+;Name Server Information
+@       IN  NS      vm1.lab.jykim32.ops.
+
+;IP address of Name Server
+vm1       IN  A       192.168.17.53
+
+;Mail exchanger
+vm1.lab.jykim32.ops. IN  MX 10   mail.vm1.lab.jykim32.ops.
+
+;A - Record HostName To Ip Address
+vm2.lab.jykim32.ops.    IN  A       192.168.17.2
+vm3.lab.jykim32.ops.    IN  A       192.168.17.3
+
+;
+
+/var/named/rev-zone.db
+$TTL 86400
+@   IN  SOA     vm1.lab.jykim32.ops. root.vm1.lab.jykim32.ops. (
+                                       3           ;Serial
+                                       3600        ;Refresh
+                                       1800        ;Retry
+                                       604800      ;Expire
+                                       86400       ;Minimum TTL
+)
+
+;Name Server Information
+@         IN      NS         vm1.lab.jykim32.ops.
+
+;Reverse lookup for Name Server
+10        IN  PTR     vm1.lab.jykim32.ops.
+
+
+Journals
+dns packets
+end dns packets
+
